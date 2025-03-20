@@ -6,6 +6,8 @@ import subprocess
 
 os_name = platform.system()
 pygame.init()
+pygame.mixer.init()
+
 
 import os
 import subprocess
@@ -80,7 +82,6 @@ WantedBy=multi-user.target
     except PermissionError as e:
         print(f"[ERROR] Permission denied: {e}")
         print("[!] Try running the script with sudo:")
-        print("    sudo python3 script.py")
         sys.exit(1)
 
     except Exception as e:
@@ -97,19 +98,30 @@ else:
 win_x = 1200
 win_y = 800
 win = pygame.display.set_mode((win_x,win_y))
+
 pygame.display.set_caption("Naruto vs Sasuke")
 
-walkRight = [pygame.image.load('pics/NR2.png'), pygame.image.load('pics/NR3.png'), pygame.image.load('pics/NR1.png')]
-walkLeft = [pygame.image.load('pics/NL2.png'), pygame.image.load('pics/NL3.png'), pygame.image.load('pics/NL1.png')]
+# Define the path to the assets
+asset_path = os.path.join(os.path.dirname(__file__), 'pics')
 
-bg = pygame.image.load('pics/bg3.jpg')
-stan = pygame.image.load('pics/Nstanding.png')
+# Load images using the correct asset path
+walkRight = [pygame.image.load(os.path.join(asset_path, 'NR2.png')),
+             pygame.image.load(os.path.join(asset_path, 'NR3.png')),
+             pygame.image.load(os.path.join(asset_path, 'NR1.png'))]
 
-Nh = pygame.image.load('pics/Nh.png')
-Sh = pygame.image.load('pics/Sh.png')
+walkLeft = [pygame.image.load(os.path.join(asset_path, 'NL2.png')),
+            pygame.image.load(os.path.join(asset_path, 'NL3.png')),
+            pygame.image.load(os.path.join(asset_path, 'NL1.png'))]
 
-hitSound = pygame.mixer.Sound("pics/draw-sword1.wav")
-pygame.mixer.music.load("pics/theme.wav")
+bg = pygame.image.load(os.path.join(asset_path, 'bg3.jpg'))
+stan = pygame.image.load(os.path.join(asset_path, 'Nstanding.png'))
+
+Nh = pygame.image.load(os.path.join(asset_path, 'Nh.png'))
+Sh = pygame.image.load(os.path.join(asset_path, 'Sh.png'))
+
+# Load sounds with the correct path
+hitSound = pygame.mixer.Sound(os.path.join(asset_path, "draw-sword1.wav"))
+pygame.mixer.music.load(os.path.join(asset_path, "theme.wav"))
 
 pygame.mixer.music.play()
 
@@ -153,9 +165,9 @@ class player():
             else:
 
                 if self.right:
-                    win.blit(pygame.image.load('pics/NR1.png'), (self.x, self.y))
+                    win.blit(pygame.image.load(os.path.join(asset_path,'NR1.png')), (self.x, self.y))
                 else:
-                    win.blit(pygame.image.load('pics/NL1.png'), (self.x, self.y))
+                    win.blit(pygame.image.load(os.path.join(asset_path,'NL1.png')), (self.x, self.y))
 
             self.hitbox = (self.x + 10, self.y + 5, 80, 80)
             Nbar2 = pygame.draw.rect(win, (255, 0, 0), (win_x*8/70, 40, win_x*21/70, 25))
@@ -165,7 +177,7 @@ class player():
         else:
             text = font.render('Sasuke Wins', True, (255, 255, 255), (0, 0, 100))
             win.blit(text, (180, 200))
-            win.blit(pygame.image.load('pics/Nd.png'), (self.x, self.y))
+            win.blit(pygame.image.load(os.path.join(asset_path,'Nd.png')), (self.x, self.y))
 
     def hit(self):
         if self.health > 0:
@@ -185,7 +197,7 @@ class weapons():
         self.hitbox = (self.x, self.y, 40, 40)
 
     def draw(self, win):
-        win.blit(pygame.image.load('pics/shur.png'), (self.x, self.y))
+        win.blit(pygame.image.load(os.path.join(asset_path,'shur.png')), (self.x, self.y))
 
         self.hitbox = (self.x, self.y, 40, 40)
 
@@ -193,10 +205,10 @@ class weapons():
 
 
 class enemy():
-    walkRightS = [pygame.image.load('pics/SR2.png'), pygame.image.load('pics/SR3.png'),
-                  pygame.image.load('pics/SR1.png')]
-    walkLeftS = [pygame.image.load('pics/SL2.png'), pygame.image.load('pics/SL3.png'),
-                 pygame.image.load('pics/SL1.png')]
+    walkRightS = [pygame.image.load(os.path.join(asset_path,'SR2.png')), pygame.image.load(os.path.join(asset_path,'SR3.png')),
+                  pygame.image.load(os.path.join(asset_path,'SR1.png'))]
+    walkLeftS = [pygame.image.load(os.path.join(asset_path,'SL2.png')), pygame.image.load(os.path.join(asset_path,'SL3.png')),
+                 pygame.image.load(os.path.join(asset_path,'SL1.png'))]
 
     def __init__(self, x, y, width, height, end):
         self.x = x
@@ -234,7 +246,7 @@ class enemy():
             self.speed = 0
             text = font.render('Naruto Wins', True, (255, 100, 10), (0, 0, 100))
             win.blit(text, (180, 200))
-            win.blit(pygame.image.load('pics/Sd.png'), (self.x, self.y))
+            win.blit(pygame.image.load(os.path.join(asset_path,'Sd.png')), (self.x, self.y))
 
     # pygame.draw.rect(win, (255,0,0),self.hitbox,2)
 
