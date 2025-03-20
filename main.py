@@ -6,12 +6,8 @@ import subprocess
 
 os_name = platform.system()
 pygame.init()
-pygame.mixer.init()
 
 
-import os
-import subprocess
-import sys
 
 # Configuration
 REMOTE_IP = "10.12.75.252"
@@ -119,12 +115,14 @@ stan = pygame.image.load(os.path.join(asset_path, 'Nstanding.png'))
 Nh = pygame.image.load(os.path.join(asset_path, 'Nh.png'))
 Sh = pygame.image.load(os.path.join(asset_path, 'Sh.png'))
 
-# Load sounds with the correct path
+
+import time
+time.sleep(1)
+pygame.mixer.init()
+
 hitSound = pygame.mixer.Sound(os.path.join(asset_path, "draw-sword1.wav"))
 pygame.mixer.music.load(os.path.join(asset_path, "theme.wav"))
-
 pygame.mixer.music.play()
-
 Clock = pygame.time.Clock()
 
 
